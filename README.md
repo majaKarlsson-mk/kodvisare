@@ -22,6 +22,13 @@ npm start -- ../en/annan/mapp
 uppstår tidigare än där det kraschar, och ett som visar i vilken ordning
 asynkron kod körs.
 
+## Klistra in kod
+
+Vill du bara prova en kodsnutt? Klicka på projektnamnet uppe till vänster och
+välj fliken **Klistra in kod**. Klistra in JavaScript och tryck på Kör koden
+(eller Cmd + Enter). Behöver koden knappar eller andra element kan du lägga
+till HTML under "HTML till sidan". Det du klistrade in senast finns kvar nästa gång.
+
 ## Så använder du det
 
 - **Din sida** till vänster är ditt riktiga projekt. Klicka och skriv som vanligt.

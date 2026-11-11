@@ -753,6 +753,76 @@ input[type='search'] {
   margin: 0 0 10px;
   font-size: 13px;
 }
+#pane-projects {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.picker-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+.picker-tabs button {
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  background: none;
+  padding: 6px 10px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.picker-tabs button[aria-selected='true'] {
+  color: var(--text);
+  border-bottom-color: var(--accent);
+}
+#pane-paste {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+  overflow: auto;
+}
+#pane-paste label,
+#pane-paste summary {
+  font-size: 13px;
+  color: var(--muted);
+}
+#pane-paste summary {
+  cursor: pointer;
+  margin-bottom: 6px;
+}
+textarea {
+  display: block;
+  width: 100%;
+  font: 12.5px/1.5 var(--mono);
+  color: inherit;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 10px;
+  resize: vertical;
+  tab-size: 2;
+}
+textarea:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.paste-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+}
+button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--surface);
+  font-weight: 600;
+}
+
 #picker-list {
   list-style: none;
   margin: 10px 0 0;

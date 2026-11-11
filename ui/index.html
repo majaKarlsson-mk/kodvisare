@@ -78,10 +78,27 @@
 
     <div id="picker" class="overlay" hidden>
       <div class="card" role="dialog" aria-label="Välj projekt">
-        <h1>Välj ett projekt</h1>
-        <p class="muted" id="picker-root"></p>
-        <input id="picker-search" type="search" placeholder="Sök, till exempel pokemon" autocomplete="off" />
-        <ul id="picker-list"></ul>
+        <div class="picker-tabs" role="tablist">
+          <button id="tab-projects" type="button" role="tab" aria-selected="true">Välj ett projekt</button>
+          <button id="tab-paste" type="button" role="tab" aria-selected="false">Klistra in kod</button>
+        </div>
+        <div id="pane-projects">
+          <p class="muted" id="picker-root"></p>
+          <input id="picker-search" type="search" placeholder="Sök, till exempel pokemon" autocomplete="off" />
+          <ul id="picker-list"></ul>
+        </div>
+        <form id="pane-paste" hidden>
+          <label for="paste-code">JavaScript</label>
+          <textarea id="paste-code" rows="12" spellcheck="false" placeholder="const tal = [1, 2, 3];&#10;const dubbla = tal.map((t) => t * 2);&#10;console.log(dubbla);"></textarea>
+          <details>
+            <summary>HTML till sidan (om koden behöver knappar eller element)</summary>
+            <textarea id="paste-html" rows="5" spellcheck="false" placeholder="&lt;button id=&quot;knapp&quot;&gt;Klicka&lt;/button&gt;"></textarea>
+          </details>
+          <div class="paste-actions">
+            <span class="muted">Cmd + Enter kör koden</span>
+            <button type="submit" class="primary">Kör koden</button>
+          </div>
+        </form>
         <p class="muted" id="picker-msg"></p>
       </div>
     </div>

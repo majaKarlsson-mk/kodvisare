@@ -5,7 +5,7 @@
 //   npm start -- ../en/mapp   letar projekt i en annan mapp
 import { createServer } from 'vite';
 import { createHash } from 'node:crypto';
-import { existsSync, readdirSync, statSync, realpathSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, realpathSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createRegistry, kodvisarePlugin } from './plugin.js';
@@ -38,7 +38,43 @@ function findProjects(dir, depth, out) {
   return out;
 }
 
-async function openProject(dir) {
+// Inklistrad kod sparas som ett litet projekt i en egen mapp och körs som vilket projekt som helst
+const snippetDir = join(appDir, '.klistra-in');
+const SNIPPET_NAME = 'Inklistrad kod';
+
+function readSnippet() {
+  const read = (f) => (existsSync(join(snippetDir, f)) ? readFileSync(join(snippetDir, f), 'utf8') : '');
+  return { code: read('kod.js'), html: read('sida.html') };
+}
+
+async function runSnippet(code, html) {
+  mkdirSync(snippetDir, { recursive: true });
+  writeFileSync(join(snippetDir, 'kod.js'), code);
+  writeFileSync(join(snippetDir, 'sida.html'), html);
+  const body = html.trim() || '<p class="tom">Koden har ingen egen sida. Det som skrivs med console.log syns i panelen Konsol.</p>';
+  writeFileSync(
+    join(snippetDir, 'index.html'),
+    `<!doctype html>
+<html lang="sv">
+  <head>
+    <meta charset="utf-8" />
+    <title>Inklistrad kod</title>
+    <style>
+      body { font: 16px system-ui, sans-serif; padding: 20px; }
+      .tom { color: #6b6a66; }
+    </style>
+  </head>
+  <body>
+${body}
+    <script type="module" src="kod.js"></script>
+  </body>
+</html>
+`,
+  );
+  return openProject(snippetDir, SNIPPET_NAME);
+}
+
+async function openProject(dir, name) {
   dir = realpathSync(resolve(dir));
   if (dir !== scanRoot && !dir.startsWith(scanRoot + sep) && !dir.startsWith(appDir + sep)) throw new Error('Mappen ligger utanför ' + scanRoot);
   if (!existsSync(join(dir, 'index.html'))) throw new Error('Hittar ingen index.html i mappen');
@@ -66,7 +102,7 @@ async function openProject(dir) {
   }
   await server.listen();
   const url = server.resolvedUrls?.local?.[0] ?? 'http://localhost:' + server.config.server.port + '/';
-  project = { dir, name: relative(scanRoot, dir).split(sep).join('/'), url, server, registry };
+  project = { dir, name: name ?? relative(scanRoot, dir).split(sep).join('/'), url, server, registry };
   return { name: project.name, url };
 }
 
@@ -109,6 +145,11 @@ const api = {
         if (url === '/api/open' && req.method === 'POST') {
           const { path } = await readBody(req);
           return send(200, await openProject(String(path)));
+        }
+        if (url === '/api/snippet') {
+          if (req.method !== 'POST') return send(200, readSnippet());
+          const { code, html } = await readBody(req);
+          return send(200, await runSnippet(String(code ?? ''), String(html ?? '')));
         }
         if (url === '/api/meta') {
           if (!project) return send(200, { files: [], problems: [] });

@@ -225,7 +225,7 @@ function renderList() {
 async function showPicker() {
   picker.hidden = false;
   search.value = '';
-  search.focus();
+  showTab(app.project?.name === 'Inklistrad kod');
   try {
     const data = await fetch('/api/projects').then((r) => r.json());
     projects = data.projects;
@@ -236,6 +236,69 @@ async function showPicker() {
     $('#picker-msg').textContent = 'Får ingen kontakt med Kodvisares server. Är den igång?';
   }
 }
+
+// ----- klistra in kod -----
+
+const paneProjects = $('#pane-projects');
+const panePaste = $('#pane-paste');
+const pasteCode = $('#paste-code');
+const pasteHtml = $('#paste-html');
+let snippetLoaded = false;
+
+async function showTab(paste) {
+  paneProjects.hidden = paste;
+  panePaste.hidden = !paste;
+  $('#tab-projects').setAttribute('aria-selected', String(!paste));
+  $('#tab-paste').setAttribute('aria-selected', String(paste));
+  $('#picker-msg').textContent = '';
+  if (!paste) return search.focus();
+  if (!snippetLoaded) {
+    // Hämta det som klistrades in senast, så att det går att ändra och köra igen
+    snippetLoaded = true;
+    try {
+      const last = await fetch('/api/snippet').then((r) => r.json());
+      if (!pasteCode.value) pasteCode.value = last.code;
+      if (!pasteHtml.value) pasteHtml.value = last.html;
+      if (last.html) pasteHtml.closest('details').open = true;
+    } catch {}
+  }
+  pasteCode.focus();
+}
+
+async function runPaste() {
+  if (!pasteCode.value.trim()) {
+    $('#picker-msg').textContent = 'Klistra in lite JavaScript först.';
+    return;
+  }
+  $('#picker-msg').textContent = 'Startar …';
+  try {
+    const res = await fetch('/api/snippet', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code: pasteCode.value, html: pasteHtml.value }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    $('#picker-msg').textContent = '';
+    $('#console').open = true;
+    attach(data);
+  } catch (err) {
+    $('#picker-msg').textContent = 'Kunde inte köra koden: ' + err.message;
+  }
+}
+
+$('#tab-projects').addEventListener('click', () => showTab(false));
+$('#tab-paste').addEventListener('click', () => showTab(true));
+panePaste.addEventListener('submit', (e) => {
+  e.preventDefault();
+  runPaste();
+});
+panePaste.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+    e.preventDefault();
+    runPaste();
+  }
+});
 
 search.addEventListener('input', renderList);
 picker.addEventListener('click', (e) => {
