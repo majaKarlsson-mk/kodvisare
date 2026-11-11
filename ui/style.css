@@ -134,8 +134,10 @@ code {
 /* ----- mitten ----- */
 
 #main {
+  --w-page: minmax(240px, 28%);
+  --w-side: 330px;
   display: grid;
-  grid-template-columns: minmax(240px, 28%) minmax(0, 1fr) 330px;
+  grid-template-columns: var(--w-page) 7px minmax(0, 1fr) 7px var(--w-side);
   min-height: 0;
 }
 #main > * {
@@ -143,10 +145,83 @@ code {
   min-width: 0;
 }
 
+/* Avdelarna som går att dra i. Själva linjen ritas i mitten av dem. */
+.gutter {
+  position: relative;
+  flex: none;
+  background: transparent;
+  touch-action: none;
+  z-index: 2;
+}
+.gutter::after {
+  content: '';
+  position: absolute;
+  background: var(--border);
+  transition: background 0.12s;
+}
+.gutter.col {
+  width: 7px;
+  cursor: col-resize;
+}
+.gutter.col::after {
+  top: 0;
+  bottom: 0;
+  left: 3px;
+  width: 1px;
+}
+.gutter.row {
+  height: 7px;
+  cursor: row-resize;
+}
+.gutter.row::after {
+  left: 0;
+  right: 0;
+  top: 3px;
+  height: 1px;
+}
+.gutter:hover::after,
+.gutter:focus-visible::after,
+body.resizing .gutter::after {
+  background: var(--accent);
+}
+.gutter.col:hover::after,
+.gutter.col:focus-visible::after {
+  left: 2px;
+  width: 3px;
+}
+.gutter.row:hover::after,
+.gutter.row:focus-visible::after {
+  top: 2px;
+  height: 3px;
+}
+.gutter:focus-visible {
+  outline: none;
+}
+.gutter[aria-disabled='true'] {
+  cursor: default;
+}
+.gutter[aria-disabled='true']:hover::after {
+  background: var(--border);
+  top: 3px;
+  height: 1px;
+}
+/* Medan man drar: låt inte sidan i ramen sluka musen, och markera ingen text */
+body.resizing {
+  user-select: none;
+}
+body.resizing-x {
+  cursor: col-resize;
+}
+body.resizing-y {
+  cursor: row-resize;
+}
+body.resizing #frame {
+  pointer-events: none;
+}
+
 #page {
   display: flex;
   flex-direction: column;
-  border-right: 1px solid var(--border);
 }
 #page h2,
 #side summary {
@@ -298,19 +373,40 @@ code {
 
 /* ----- sidopanel ----- */
 
+/* Varje öppen panel får sin del av höjden och rullar för sig själv.
+   Dra i avdelaren mellan två paneler för att ändra fördelningen. */
 #side {
+  display: flex;
+  flex-direction: column;
   overflow: auto;
-  border-left: 1px solid var(--border);
+}
+#side > details {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+#side > details:not([open]) {
+  flex: none;
+}
+#side > details::details-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
 }
 #side summary {
+  flex: none;
   cursor: pointer;
-  position: sticky;
-  top: 0;
-  z-index: 1;
 }
 #side .body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
   padding: 8px 12px 14px;
   background: var(--surface);
+}
+#side > details:last-child .body {
   border-bottom: 1px solid var(--border);
 }
 #side .hint {
@@ -714,12 +810,13 @@ input[type='search'] {
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: 200px minmax(0, 1fr) 220px;
   }
+  .gutter.col {
+    display: none;
+  }
   #page {
-    border-right: 0;
     border-bottom: 1px solid var(--border);
   }
   #side {
-    border-left: 0;
     border-top: 1px solid var(--border);
   }
   .tl-help {

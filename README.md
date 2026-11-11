@@ -35,6 +35,9 @@ asynkron kod körs.
 - **Anropskedja** visar vilka funktioner som ledde fram till raden du står på.
 - **Felrutan** dyker upp när koden kraschar och pekar bakåt till raden där
   det felaktiga värdet uppstod.
+- **Dra i linjerna** mellan panelerna för att ändra storlek, som i DevTools:
+  bredden på Din sida och sidopanelen, och höjden på Variabler, Bevakning och
+  Anropskedja. Dubbelklicka på en linje för att återställa. Storlekarna sparas.
 
 Dina filer ändras aldrig. Koden skrivs om på vägen till webbläsaren, inte på disk.
 När du sparar en fil i din editor laddas sidan om och inspelningen börjar om.
@@ -58,5 +61,6 @@ När du sparar en fil i din editor laddas sidan om och inspelningen börjar om.
 | `ui/store.js` | Håller inspelningen och svarar på "vad var X vid steg N?" |
 | `ui/provenance.js` | Letar bakåt efter var ett felaktigt värde uppstod |
 | `ui/callsites.js` | Hittar var en funktion anropas |
+| `ui/layout.js` | Dragbara avdelare mellan panelerna |
 | `ui/views/` | Panelerna på skärmen |
 | `test/` | Tester (`npm test`) och exempelprojekten |

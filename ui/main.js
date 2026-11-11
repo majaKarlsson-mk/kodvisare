@@ -8,6 +8,7 @@ import { createWatchView } from './views/watch.js';
 import { createStackView, createConsoleView } from './views/stack.js';
 import { createErrorView } from './views/error.js';
 import { createTimelineView } from './views/timeline.js';
+import { setupLayout } from './layout.js';
 
 const store = new Store();
 const frame = $('#frame');
@@ -245,5 +246,6 @@ $('#restart').addEventListener('click', () => {
   if (app.project) frame.src = app.project.url;
 });
 
+setupLayout();
 app.render();
 showPicker().then((current) => current && attach(current));
