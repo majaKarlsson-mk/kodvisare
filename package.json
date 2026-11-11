@@ -1,0 +1,21 @@
+{
+  "name": "kodvisare",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Se hur din JavaScript körs, steg för steg.",
+  "scripts": {
+    "start": "node server/index.js",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@babel/generator": "^8.1.0",
+    "@babel/parser": "^8.1.0",
+    "@babel/traverse": "^8.1.0",
+    "@babel/types": "^8.1.0",
+    "vite": "^8.3.8"
+  },
+  "devDependencies": {
+    "vitest": "^5.1.0"
+  }
+}

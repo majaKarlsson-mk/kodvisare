@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="sv">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Kodvisare</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <header id="top">
+      <strong class="brand">Kodvisare</strong>
+      <button id="pick" class="quiet" type="button">Välj projekt</button>
+      <button id="restart" type="button" hidden>Börja om</button>
+      <span id="status" role="status"></span>
+    </header>
+
+    <main id="main">
+      <section id="page" aria-label="Din sida">
+        <h2>Din sida</h2>
+        <iframe id="frame" title="Projektets sida"></iframe>
+      </section>
+
+      <section id="code" aria-label="Kod">
+        <div id="tabs" role="tablist"></div>
+        <div id="lines" tabindex="0"></div>
+      </section>
+
+      <aside id="side">
+        <details open id="vars">
+          <summary>Variabler</summary>
+          <div class="body"></div>
+        </details>
+        <details open id="watch">
+          <summary>Bevakning</summary>
+          <div class="body"></div>
+        </details>
+        <details open id="stack">
+          <summary>Anropskedja</summary>
+          <div class="body"></div>
+        </details>
+        <details id="console">
+          <summary>Konsol <span class="count"></span></summary>
+          <div class="body"></div>
+        </details>
+      </aside>
+    </main>
+
+    <footer id="bottom">
+      <div id="error" hidden></div>
+      <div id="timeline">
+        <div class="tl-row">
+          <div class="tl-buttons">
+            <button id="tl-first" type="button" title="Första steget (Home)" aria-label="Första steget">⏮</button>
+            <button id="tl-prev" type="button" title="Ett steg bakåt (←)" aria-label="Ett steg bakåt">◀</button>
+            <button id="tl-next" type="button" title="Ett steg framåt (→)" aria-label="Ett steg framåt">▶</button>
+            <button id="tl-last" type="button" title="Senaste steget (End)" aria-label="Senaste steget">⏭</button>
+          </div>
+          <div class="tl-track">
+            <div id="tl-marks"></div>
+            <input id="tl-range" type="range" min="0" max="0" step="1" value="0" aria-label="Tidslinje" />
+          </div>
+          <div id="tl-info"></div>
+        </div>
+        <div class="tl-sub">
+          <span id="tl-job"></span>
+          <span id="tl-visits"></span>
+          <span class="tl-help">← → stegar · Skift + ← → hoppar över anrop</span>
+        </div>
+      </div>
+    </footer>
+
+    <div id="picker" class="overlay" hidden>
+      <div class="card" role="dialog" aria-label="Välj projekt">
+        <h1>Välj ett projekt</h1>
+        <p class="muted" id="picker-root"></p>
+        <input id="picker-search" type="search" placeholder="Sök, till exempel pokemon" autocomplete="off" />
+        <ul id="picker-list"></ul>
+        <p class="muted" id="picker-msg"></p>
+      </div>
+    </div>
+
+    <div id="pop" hidden></div>
+
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>
