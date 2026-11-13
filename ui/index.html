@@ -20,6 +20,27 @@
         <iframe id="frame" title="Projektets sida"></iframe>
       </section>
 
+      <section id="scratch" aria-label="Skrivblock" hidden>
+        <div class="sb-head">
+          <h2>Skrivblock</h2>
+          <label><input id="sb-auto" type="checkbox" checked /> Kör medan jag skriver</label>
+          <button id="sb-run" type="button" title="Kör koden nu (Cmd + Enter)">Kör</button>
+          <span id="sb-status"></span>
+        </div>
+        <details open id="sb-editor">
+          <summary>Kod</summary>
+          <div class="body sb-edit">
+            <div class="sb-mirror" aria-hidden="true"></div>
+            <textarea id="sb-code" wrap="off" spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="JavaScript att köra" placeholder="const tal = [1, 2, 3];&#10;tal.map((t) => t * 2);"></textarea>
+          </div>
+        </details>
+        <div class="gutter row" role="separator" aria-orientation="horizontal" aria-label="Ändra höjd på Kod" title="Dra för att ändra höjd · dubbelklicka för att återställa" tabindex="0"></div>
+        <details open id="sb-output">
+          <summary>Utdata</summary>
+          <div class="body"></div>
+        </details>
+      </section>
+
       <div id="gut-page" class="gutter col" role="separator" aria-orientation="vertical" aria-label="Ändra bredd på Din sida" title="Dra för att ändra bredd · dubbelklicka för att återställa" tabindex="0"></div>
 
       <section id="code" aria-label="Kod">
@@ -81,6 +102,7 @@
         <div class="picker-tabs" role="tablist">
           <button id="tab-projects" type="button" role="tab" aria-selected="true">Välj ett projekt</button>
           <button id="tab-paste" type="button" role="tab" aria-selected="false">Klistra in kod</button>
+          <button id="tab-scratch" type="button" role="tab" aria-selected="false">Skrivblock</button>
         </div>
         <div id="pane-projects">
           <p class="muted" id="picker-root"></p>
@@ -99,6 +121,11 @@
             <button type="submit" class="primary">Kör koden</button>
           </div>
         </form>
+        <div id="pane-scratch" hidden>
+          <p>Skriv JavaScript direkt i verktyget och se resultatet medan du skriver: det som skrivs med console.log, värdet av varje uttryck och värdena bredvid raderna. Snabbare än att skapa filer och öppna konsolen när du bara vill prova något.</p>
+          <p class="muted">Koden sparas mellan gångerna. Behöver du HTML eller knappar passar Klistra in kod bättre.</p>
+          <button id="sb-open" type="button" class="primary">Öppna skrivblocket</button>
+        </div>
         <p class="muted" id="picker-msg"></p>
       </div>
     </div>

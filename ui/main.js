@@ -8,6 +8,7 @@ import { createWatchView } from './views/watch.js';
 import { createStackView, createConsoleView } from './views/stack.js';
 import { createErrorView } from './views/error.js';
 import { createTimelineView } from './views/timeline.js';
+import { createScratchView, SCRATCH_NAME } from './views/scratch.js';
 import { setupLayout } from './layout.js';
 
 const store = new Store();
@@ -24,8 +25,8 @@ function loadWatch() {
 
 let explained = { key: '', list: [] };
 let message = '';
-let problems = [];
 let queued = false;
+let holdTimer = 0;
 
 const app = {
   store,
@@ -33,7 +34,13 @@ const app = {
   live: true, // följ med när nya steg kommer in
   peek: null, // fil och rad som visas utan att steget byts
   project: null,
+  problems: [], // filer som inte gick att läsa (syntaxfel)
   watch: loadWatch(),
+
+  attach: (project) => attach(project),
+  reload() {
+    if (app.project) frame.src = app.project.url;
+  },
 
   go(n) {
     if (store.count === store.first) return;
@@ -78,8 +85,22 @@ const app = {
       }
     }, 4000);
   },
+  // I skrivblocket startar inspelningen om vid varje körning. Då står den gamla vyn
+  // kvar tills den nya körningen har gett något, i stället för att panelerna blinkar tomma.
+  hold: false,
+  holdFor(ms) {
+    app.hold = true;
+    clearTimeout(holdTimer);
+    holdTimer = setTimeout(app.release, ms);
+  },
+  release() {
+    if (!app.hold) return;
+    app.hold = false;
+    clearTimeout(holdTimer);
+    app.render();
+  },
   render() {
-    if (queued) return;
+    if (queued || app.hold) return;
     queued = true;
     requestAnimationFrame(() => {
       queued = false;
@@ -90,12 +111,13 @@ const app = {
 };
 
 const code = createCodeView(app);
-const views = [code, createVariablesView(app), createWatchView(app), createStackView(app), createConsoleView(app), createErrorView(app), createTimelineView(app)];
+const scratch = createScratchView(app);
+const views = [code, createVariablesView(app), createWatchView(app), createStackView(app), createConsoleView(app), createErrorView(app), createTimelineView(app), scratch];
 
 function renderStatus() {
-  status.classList.toggle('warn', !!message || problems.length > 0);
+  status.classList.toggle('warn', !!message || app.problems.length > 0);
   if (message) status.textContent = message;
-  else if (problems.length) status.textContent = 'Kunde inte läsa ' + problems[0].file + ': ' + problems[0].message;
+  else if (app.problems.length) status.textContent = 'Kunde inte läsa ' + app.problems[0].file + ': ' + app.problems[0].message;
   else if (!app.project) status.textContent = '';
   else status.textContent = store.count ? store.count.toLocaleString('sv') + ' steg inspelade' + (app.live ? '' : ' · pausad på ett tidigare steg') : 'Väntar på att koden ska köras';
 }
@@ -109,8 +131,10 @@ function refreshFiles(delay = 120) {
     try {
       const data = await fetch('/api/meta').then((r) => r.json());
       store.setFiles(data.files);
-      problems = data.problems || [];
+      app.problems = data.problems || [];
       code.invalidate();
+      scratch.onFiles();
+      app.release(); // nu finns både nya källan och nya värdena, så vyn kan bytas i ett svep
       app.render();
     } catch {}
   }, delay);
@@ -126,8 +150,10 @@ window.addEventListener('message', (e) => {
     app.live = true;
     app.peek = null;
     code.invalidate();
+    scratch.onReset();
     refreshFiles(300);
-    app.render();
+    if (scratch.active()) app.holdFor(1500);
+    else app.render();
     return;
   }
   if (e.data.kv === 'ev') {
@@ -190,8 +216,10 @@ function attach(project) {
   picker.hidden = true;
   store.reset();
   store.setFiles([]);
+  app.problems = [];
   app.n = -1;
   code.invalidate();
+  scratch.setActive(project.name === SCRATCH_NAME);
   frame.src = project.url;
   app.render();
 }
@@ -225,7 +253,7 @@ function renderList() {
 async function showPicker() {
   picker.hidden = false;
   search.value = '';
-  showTab(app.project?.name === 'Inklistrad kod');
+  showTab(app.project?.name === 'Inklistrad kod' ? 'paste' : app.project?.name === SCRATCH_NAME ? 'scratch' : 'projects');
   try {
     const data = await fetch('/api/projects').then((r) => r.json());
     projects = data.projects;
@@ -239,19 +267,20 @@ async function showPicker() {
 
 // ----- klistra in kod -----
 
-const paneProjects = $('#pane-projects');
-const panePaste = $('#pane-paste');
+const panes = { projects: $('#pane-projects'), paste: $('#pane-paste'), scratch: $('#pane-scratch') };
 const pasteCode = $('#paste-code');
 const pasteHtml = $('#paste-html');
 let snippetLoaded = false;
 
-async function showTab(paste) {
-  paneProjects.hidden = paste;
-  panePaste.hidden = !paste;
-  $('#tab-projects').setAttribute('aria-selected', String(!paste));
-  $('#tab-paste').setAttribute('aria-selected', String(paste));
+// Flikarna i projektväljaren: 'projects', 'paste' eller 'scratch'
+async function showTab(which) {
+  for (const [name, pane] of Object.entries(panes)) {
+    pane.hidden = name !== which;
+    $('#tab-' + name).setAttribute('aria-selected', String(name === which));
+  }
   $('#picker-msg').textContent = '';
-  if (!paste) return search.focus();
+  if (which === 'projects') return search.focus();
+  if (which === 'scratch') return $('#sb-open').focus();
   if (!snippetLoaded) {
     // Hämta det som klistrades in senast, så att det går att ändra och köra igen
     snippetLoaded = true;
@@ -287,13 +316,15 @@ async function runPaste() {
   }
 }
 
-$('#tab-projects').addEventListener('click', () => showTab(false));
-$('#tab-paste').addEventListener('click', () => showTab(true));
-panePaste.addEventListener('submit', (e) => {
+$('#tab-projects').addEventListener('click', () => showTab('projects'));
+$('#tab-paste').addEventListener('click', () => showTab('paste'));
+$('#tab-scratch').addEventListener('click', () => showTab('scratch'));
+$('#sb-open').addEventListener('click', () => scratch.open());
+panes.paste.addEventListener('submit', (e) => {
   e.preventDefault();
   runPaste();
 });
-panePaste.addEventListener('keydown', (e) => {
+panes.paste.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
     e.preventDefault();
     runPaste();
@@ -305,9 +336,7 @@ picker.addEventListener('click', (e) => {
   if (e.target === picker && app.project) picker.hidden = true;
 });
 $('#pick').addEventListener('click', showPicker);
-$('#restart').addEventListener('click', () => {
-  if (app.project) frame.src = app.project.url;
-});
+$('#restart').addEventListener('click', app.reload);
 
 setupLayout();
 app.render();

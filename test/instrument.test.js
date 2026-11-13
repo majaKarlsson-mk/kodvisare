@@ -88,3 +88,51 @@ describe('instrumenteringen', () => {
     expect(last.k[1][1].v).toMatch(/sig själv/);
   });
 });
+
+// Skrivblocket visar värdet av uttryckssatser på toppnivå, som konsolen gör
+describe('resultat på toppnivå', () => {
+  const outputs = (r) => r.events.filter((e) => e[0] === 'o');
+
+  test('rapporterar värdet av ett uttryck på toppnivå', async () => {
+    const r = await run(`const tal = [1, 2, 3];\ntal.map((t) => t * 2);`, { results: true });
+    expect(r.error).toBeNull();
+    const o = outputs(r);
+    expect(o).toHaveLength(1);
+    expect(o[0][2]).toEqual({ $: 'a', n: 3, v: [2, 4, 6] });
+    const store = storeOf(r);
+    expect(store.loc(o[0][3]).line).toBe(2);
+    expect(store.outputs).toHaveLength(1);
+    expect(store.outputs[0].snap).toEqual({ $: 'a', n: 3, v: [2, 4, 6] });
+    expect(store.loc(store.step(store.outputs[0].step).L).line).toBe(2);
+  });
+
+  test('hoppar över console.log, tilldelningar och ++', async () => {
+    const r = await run(`console.log(1);\nlet x = 1;\nx = 2;\nx++;\nx += 1;`, { results: true });
+    expect(outputs(r)).toHaveLength(0);
+    expect(r.logs).toEqual([[1]]);
+  });
+
+  test('tysta anrop som ger undefined, men visar undefined från ett uttryck', async () => {
+    const r = await run(`[].forEach(() => {});\nconst o = {};\no.saknas;`, { results: true });
+    const o = outputs(r);
+    expect(o).toHaveLength(1);
+    expect(o[0][2]).toEqual({ $: 'u' });
+  });
+
+  test('gör ingenting utan inställningen', async () => {
+    const r = await run(`const tal = [1, 2, 3];\ntal.map((t) => t * 2);\nconsole.log(tal.length);`);
+    expect(outputs(r)).toHaveLength(0);
+    expect(r.logs).toEqual([[3]]);
+  });
+
+  test('samsas med omvisningen av en array efter push', async () => {
+    const r = await run(`const l = [1];\nl.push(2);`, { results: true });
+    expect(outputs(r).map((e) => e[2])).toEqual([2]);
+    expect(values(storeOf(r), 'l')).toEqual([{ $: 'a', n: 1, v: [1] }, { $: 'a', n: 2, v: [1, 2] }]);
+  });
+
+  test('rapporterar inte uttryck inne i funktioner', async () => {
+    const r = await run(`function f() { 1 + 1; }\nf();`, { results: true });
+    expect(outputs(r)).toHaveLength(0);
+  });
+});

@@ -38,6 +38,7 @@ export class Store {
     this.throws = new Map();
     this.errors = [];
     this.logs = [];
+    this.outputs = []; // värden av uttryckssatser på toppnivå (skrivblocket)
     this.calls = new Map(); // funktion -> [ram-id]
     this.visits = new Map(); // plats -> [stegnummer]
   }
@@ -145,6 +146,9 @@ export class Store {
           break;
         case 'c':
           this.logs.push({ i, level: ev[1], args: ev[2], step: this.count - 1 });
+          break;
+        case 'o':
+          this.outputs.push({ i, frame: ev[1], snap: ev[2], L: ev[3], step: this.count - 1 });
           break;
       }
     }

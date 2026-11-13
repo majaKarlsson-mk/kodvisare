@@ -44,7 +44,8 @@ const attr = (attrs, name) => {
   return m ? (m[2] ?? m[3] ?? m[4]) : null;
 };
 
-export function kodvisarePlugin(registry) {
+// results: visa värdet av uttryckssatser på toppnivå (skrivblocket)
+export function kodvisarePlugin(registry, { results = false } = {}) {
   const { root } = registry;
   const inRoot = (file) => file === root || file.startsWith(root + sep);
   const isClassic = (file) => registry.classic.has(norm(file));
@@ -54,7 +55,7 @@ export function kodvisarePlugin(registry) {
     const entry = registry.entry(file, code);
     registry.problems = registry.problems.filter((p) => p.file !== entry.rel);
     try {
-      return instrument(code, { fileId: entry.id, mode, meta: entry.meta }).code;
+      return instrument(code, { fileId: entry.id, mode, meta: entry.meta, results }).code;
     } catch (err) {
       // Syntaxfel: skicka koden som den är, så visar webbläsaren felet
       registry.problems.push({ file: entry.rel, message: err.message });
@@ -121,6 +122,7 @@ export function kodvisarePlugin(registry) {
               mode: isModule ? 'module' : 'script',
               baseOffset,
               meta: entry.meta,
+              results,
             });
             return '<script' + attrs + '>' + code + '</script>';
           } catch (err) {

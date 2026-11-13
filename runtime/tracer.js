@@ -14,6 +14,7 @@
 //   ['t', {name, message}, L, ram]     ett fel kastas
 //   ['u', index till 't', extra]       felet fångades aldrig
 //   ['c', nivå, [värden]]              console.log
+//   ['o', ram, värde, L]               värdet av en uttryckssats på toppnivå (skrivblocket)
 //
 // "ram" är ett id för ett funktionsanrop. Negativa id:n är filens toppnivå,
 // 0 är det globala scopet.
@@ -149,6 +150,12 @@
 
     r(frame, value) {
       push(['r', frame, snap(value)]);
+      return value;
+    },
+
+    // Värdet av en uttryckssats på toppnivå. quiet: hoppa över undefined (anrop utan returvärde)
+    o(frame, value, L, quiet) {
+      if (!(quiet && value === undefined)) push(['o', frame, snap(value), L]);
       return value;
     },
 

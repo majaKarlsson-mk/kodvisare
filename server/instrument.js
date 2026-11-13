@@ -59,6 +59,13 @@ function rootOf(n) {
   return n;
 }
 
+const isAssignLike = (n) => n.type === 'AssignmentExpression' || n.type === 'UpdateExpression';
+const isConsoleCall = (n) => {
+  if (!isCall(n) || !isMember(n.callee)) return false;
+  const root = rootOf(n.callee);
+  return root.type === 'Identifier' && root.name === 'console';
+};
+
 function highlight(tokens, base, out) {
   for (const tok of tokens || []) {
     const type = tok.type;
@@ -77,7 +84,8 @@ function highlight(tokens, base, out) {
   }
 }
 
-export function instrument(code, { fileId, mode = 'module', baseOffset = 0, meta = newMeta() }) {
+// results: rapportera värdet av uttryckssatser på toppnivå (skrivblocket)
+export function instrument(code, { fileId, mode = 'module', baseOffset = 0, meta = newMeta(), results = false }) {
   const ast = parse(code, {
     sourceType: mode === 'module' ? 'module' : 'script',
     tokens: true,
@@ -382,6 +390,13 @@ export function instrument(code, { fileId, mode = 'module', baseOffset = 0, meta
         logged.add(n);
         let e = origExpr.get(n);
         if (e && e.type === 'AwaitExpression') e = e.argument;
+        // Skrivblocket: `tal.map(...)` på en egen rad visar sitt värde, som i konsolen.
+        // Tilldelningar syns redan som variabler, och console.log syns i konsolen.
+        if (results && e && path.parentPath.isProgram() && stmtLoc.has(n) && !isAssignLike(e) && !isConsoleCall(e)) {
+          const quiet = isCall(e) || e.type === 'NewExpression'; // anrop som ger undefined är inte värda att visa
+          const L = t.numericLiteral(fileId * MUL + stmtLoc.get(n));
+          n.expression = quiet ? kv('o', currentFrame(path), n.expression, L, t.numericLiteral(1)) : kv('o', currentFrame(path), n.expression, L);
+        }
         if (!isCall(e) || !isMember(e.callee)) return;
         const calls = logTargets(path, e.callee);
         if (calls.length) path.insertAfter(calls.map((c) => t.expressionStatement(c)));

@@ -74,7 +74,49 @@ ${body}
   return openProject(snippetDir, SNIPPET_NAME);
 }
 
-async function openProject(dir, name) {
+// Skrivblocket: skriv kod direkt i verktyget och se resultatet medan du skriver.
+// Samma idé som inklistrad kod, men servern startas inte om vid varje körning:
+// är skrivblocket redan öppet skrivs bara kod.js om, och Vite laddar om sidan.
+const scratchDir = join(appDir, '.skrivblock');
+const SCRATCH_NAME = 'Skrivblock';
+
+function readScratch() {
+  const file = join(scratchDir, 'kod.js');
+  return { code: existsSync(file) ? readFileSync(file, 'utf8') : '' };
+}
+
+async function runScratch(code) {
+  mkdirSync(scratchDir, { recursive: true });
+  const page = join(scratchDir, 'index.html');
+  if (!existsSync(page)) {
+    writeFileSync(
+      page,
+      `<!doctype html>
+<html lang="sv">
+  <head>
+    <meta charset="utf-8" />
+    <title>Skrivblock</title>
+  </head>
+  <body>
+    <script type="module" src="kod.js"></script>
+  </body>
+</html>
+`,
+    );
+  }
+  const file = join(scratchDir, 'kod.js');
+  writeFileSync(file, code);
+  if (project && project.dir === realpathSync(scratchDir)) {
+    // Glöm den gamla omskrivningen av kod.js, så att nästa hämtning instrumenterar om.
+    // (Vites filbevakare gör samma sak, men på macOS kan den dröja över en sekund.)
+    for (const env of Object.values(project.server.environments ?? {})) env.moduleGraph?.onFileChange(file);
+    return { name: project.name, url: project.url, opened: false };
+  }
+  // hmr: false: verktyget laddar om sidan självt när koden ändrats, Vite ska inte också göra det
+  return { ...(await openProject(scratchDir, SCRATCH_NAME, { results: true, hmr: false })), opened: true };
+}
+
+async function openProject(dir, name, opts = {}) {
   dir = realpathSync(resolve(dir));
   if (dir !== scanRoot && !dir.startsWith(scanRoot + sep) && !dir.startsWith(appDir + sep)) throw new Error('Mappen ligger utanför ' + scanRoot);
   if (!existsSync(join(dir, 'index.html'))) throw new Error('Hittar ingen index.html i mappen');
@@ -89,8 +131,8 @@ async function openProject(dir, name) {
     clearScreen: false,
     // Vites cache hamnar hos Kodvisare, så att inget skrivs i ditt projekt
     cacheDir: join(appDir, 'node_modules', '.kodvisare', createHash('sha1').update(dir).digest('hex').slice(0, 12)),
-    server: { port: 5181, strictPort: false, host: 'localhost', open: false },
-    plugins: [kodvisarePlugin(registry)],
+    server: { port: 5181, strictPort: false, host: 'localhost', open: false, hmr: opts.hmr !== false },
+    plugins: [kodvisarePlugin(registry, { results: opts.results })],
   };
   const hasConfig = ['js', 'mjs', 'ts'].some((ext) => existsSync(join(dir, 'vite.config.' + ext)));
   let server;
@@ -150,6 +192,11 @@ const api = {
           if (req.method !== 'POST') return send(200, readSnippet());
           const { code, html } = await readBody(req);
           return send(200, await runSnippet(String(code ?? ''), String(html ?? '')));
+        }
+        if (url === '/api/scratch') {
+          if (req.method !== 'POST') return send(200, readScratch());
+          const { code } = await readBody(req);
+          return send(200, await runScratch(String(code ?? '')));
         }
         if (url === '/api/meta') {
           if (!project) return send(200, { files: [], problems: [] });

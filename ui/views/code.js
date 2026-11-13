@@ -2,6 +2,7 @@
 // och rutan som visas när man hovrar över en funktion.
 import { MUL } from '../store.js';
 import { short } from '../format.js';
+import { inlineHtml, inlineValues } from '../inline.js';
 import { recordedCalls, resolveRef, unusedMentions } from '../callsites.js';
 import { $, baseName, el, esc } from '../dom.js';
 
@@ -154,28 +155,11 @@ export function createCodeView(app) {
           if (!app.peek) scrollTo(lineEl);
         }
       }
-      // Värden bredvid raderna där de sattes
-      const iEnd = store.endOf(app.n);
-      const iPrev = app.n > store.first ? store.endOf(app.n - 1) : -1;
-      const perLine = new Map();
-      for (const id of step.frame < 0 ? [step.frame, 0] : [step.frame]) {
-        const frame = store.frames.get(id);
-        const fn = frame && store.fn(frame.fn);
-        for (const { name, entry } of store.varsAt(id, iEnd)) {
-          if (entry.snap && entry.snap.$ === 'f') continue;
-          const l = store.loc(entry.L);
-          let line = 0;
-          if (l) line = l.file.id === fileId ? l.line : 0;
-          else if (fn && fn.file.id === fileId) line = fn.line;
-          if (!line) continue;
-          if (!perLine.has(line)) perLine.set(line, []);
-          perLine.get(line).push('<span class="' + (entry.i > iPrev ? 'chg' : '') + '">' + esc(name) + ' = ' + esc(short(entry.snap, 48)) + '</span>');
-        }
-      }
-      for (const [line, items] of perLine) {
+      // Värden bredvid raderna där de sattes, och resultat av uttryck
+      for (const [line, items] of inlineValues(store, fileId, app.n)) {
         const lineEl = v.lineEls[line - 1];
         if (!lineEl) continue;
-        lineEl.lastChild.innerHTML = items.join('  ');
+        lineEl.lastChild.innerHTML = inlineHtml(items);
         touched.push(lineEl);
       }
     }

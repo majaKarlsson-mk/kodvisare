@@ -8,8 +8,8 @@ import { Store } from '../ui/store.js';
 const read = (rel) => readFileSync(fileURLToPath(new URL(rel, import.meta.url)), 'utf8');
 const runtime = read('../runtime/snapshot.js') + '\n' + read('../runtime/tracer.js');
 
-export async function run(code, { fileId = 1, mode = 'script', wait = 20 } = {}) {
-  const { code: out, meta } = instrument(code, { fileId, mode });
+export async function run(code, { fileId = 1, mode = 'script', wait = 20, results = false } = {}) {
+  const { code: out, meta } = instrument(code, { fileId, mode, results });
   const events = [];
   const logs = [];
   const context = vm.createContext({

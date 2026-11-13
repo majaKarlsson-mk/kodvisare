@@ -134,6 +134,7 @@ code {
 /* ----- mitten ----- */
 
 #main {
+  position: relative;
   --w-page: minmax(240px, 28%);
   --w-side: 330px;
   display: grid;
@@ -224,7 +225,9 @@ body.resizing #frame {
   flex-direction: column;
 }
 #page h2,
-#side summary {
+#side summary,
+#scratch summary,
+.sb-head h2 {
   margin: 0;
   padding: 7px 12px;
   font-size: 12px;
@@ -323,6 +326,9 @@ body.resizing #frame {
   padding: 0 4px;
   opacity: 1;
 }
+.ln .iv .out {
+  color: var(--str);
+}
 .ln.cur {
   background: var(--accent-bg);
   box-shadow: inset 3px 0 0 var(--accent);
@@ -380,33 +386,39 @@ body.resizing #frame {
   flex-direction: column;
   overflow: auto;
 }
-#side > details {
+#side > details,
+#scratch > details {
   display: flex;
   flex-direction: column;
   flex: 1 1 auto;
   min-height: 0;
 }
-#side > details:not([open]) {
+#side > details:not([open]),
+#scratch > details:not([open]) {
   flex: none;
 }
-#side > details::details-content {
+#side > details::details-content,
+#scratch > details::details-content {
   display: flex;
   flex-direction: column;
   flex: 1 1 auto;
   min-height: 0;
 }
-#side summary {
+#side summary,
+#scratch summary {
   flex: none;
   cursor: pointer;
 }
-#side .body {
+#side .body,
+#scratch .body {
   flex: 1 1 auto;
   min-height: 0;
   overflow: auto;
   padding: 8px 12px 14px;
   background: var(--surface);
 }
-#side > details:last-child .body {
+#side > details:last-child .body,
+#scratch > details:last-child .body {
   border-bottom: 1px solid var(--border);
 }
 #side .hint {
@@ -596,6 +608,128 @@ input[type='search'] {
 }
 .frame-row.top .sig {
   font-weight: 600;
+}
+
+/* ----- skrivblocket ----- */
+
+/* Din sida göms, men får inte bli display: none: då stannar timers och
+   requestAnimationFrame i ramen. Absolut position tar ingen plats i rutnätet. */
+#main.scratch #page {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+#scratch {
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+}
+.sb-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  font-size: 12px;
+  color: var(--muted);
+}
+.sb-head h2 {
+  padding: 3px 0;
+  border: 0;
+}
+.sb-head label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+}
+.sb-head input {
+  margin: 0;
+  accent-color: var(--accent);
+}
+#sb-run {
+  padding: 2px 9px;
+  font-size: 12px;
+}
+#sb-status {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+#sb-status.warn {
+  color: var(--warn);
+}
+/* Editorn: textarean ligger genomskinlig ovanpå en spegel som har radnummer och värden */
+#scratch .sb-edit {
+  position: relative;
+  padding: 0;
+  overflow: auto;
+}
+#scratch .sb-edit:focus-within {
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+.sb-mirror {
+  padding: 6px 0 40px;
+  font-family: var(--mono);
+  font-size: 12.5px;
+  line-height: 20px;
+}
+.sb-mirror .tx {
+  color: transparent;
+}
+.sb-mirror.pending .iv {
+  opacity: 0.35;
+}
+#sb-code {
+  position: absolute;
+  top: 0;
+  left: 0;
+  min-width: 100%;
+  min-height: 100%;
+  margin: 0;
+  background: transparent;
+  color: var(--text);
+  border: 0;
+  border-radius: 0;
+  resize: none;
+  overflow: hidden;
+  font: 12.5px/20px var(--mono);
+  padding: 6px 16px 6px 56px;
+  white-space: pre;
+  tab-size: 2;
+}
+#sb-code:focus-visible {
+  outline: none;
+}
+#sb-code::placeholder {
+  color: var(--muted);
+  opacity: 0.7;
+}
+.sb-row .what {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.sb-row.out .what {
+  color: var(--str);
+}
+.sb-row.err .what,
+.sb-row.problem .what {
+  color: var(--danger);
+}
+#pane-scratch {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-start;
+}
+#pane-scratch p {
+  margin: 0;
 }
 
 /* ----- nederst ----- */
@@ -882,6 +1016,9 @@ button.primary {
   }
   .gutter.col {
     display: none;
+  }
+  #main.scratch {
+    grid-template-rows: minmax(0, 1fr) minmax(0, 1fr) 220px;
   }
   #page {
     border-bottom: 1px solid var(--border);

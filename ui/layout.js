@@ -25,8 +25,6 @@ function save(patch) {
 }
 
 const main = $('#main');
-const page = $('#page');
-const side = $('#side');
 
 // Gemensamt för alla avdelare: musdrag, dubbelklick och piltangenter
 function handle(gutter, { horizontal, start, move, reset, nudge }) {
@@ -58,21 +56,26 @@ function handle(gutter, { horizontal, start, move, reset, nudge }) {
   });
 }
 
-// ----- kolumnerna: Din sida | Koden | Sidopanelen -----
+// ----- kolumnerna: Din sida (eller Skrivblocket) | Koden | Sidopanelen -----
 
+const gutPage = $('#gut-page');
+const gutSide = $('#gut-side');
 const cols = {
-  page: { el: page, gutter: $('#gut-page'), sign: 1 },
-  side: { el: side, gutter: $('#gut-side'), sign: -1 },
+  page: { gutter: gutPage, sign: 1 },
+  side: { gutter: gutSide, sign: -1 },
 };
 
+// Bredden mäts från avdelarna, så det kvittar vilket element som står i kolumnen
 function colWidth(name) {
-  return cols[name].el.getBoundingClientRect().width;
+  const m = main.getBoundingClientRect();
+  if (name === 'page') return gutPage.getBoundingClientRect().left - m.left;
+  return m.right - gutSide.getBoundingClientRect().right;
 }
 
 // Håll kolumnen inom gränserna: koden i mitten ska alltid få plats
 function clampCol(name, px) {
   const other = name === 'page' ? 'side' : 'page';
-  const gutters = cols.page.gutter.offsetWidth + cols.side.gutter.offsetWidth;
+  const gutters = gutPage.offsetWidth + gutSide.offsetWidth;
   const max = main.clientWidth - colWidth(other) - gutters - MIN_CODE;
   return Math.round(Math.max(MIN_COL, Math.min(max, px)));
 }
@@ -99,23 +102,10 @@ for (const [name, col] of Object.entries(cols)) {
   });
 }
 
-// ----- panelerna i sidopanelen: Variabler, Bevakning, Anropskedja, Konsol -----
+// ----- panelerna på höjden: sidopanelens Variabler, Bevakning, Anropskedja, Konsol
+//       och skrivblockets Kod och Utdata -----
 
-const panels = [...side.querySelectorAll(':scope > details')];
-const rowGutters = [...side.querySelectorAll(':scope > .gutter')];
-
-function openPanels() {
-  return panels.filter((p) => p.open);
-}
-
-// Närmaste öppna panel ovanför respektive nedanför en avdelare
-function neighbours(gutter) {
-  const kids = [...side.children];
-  const at = kids.indexOf(gutter);
-  const above = kids.slice(0, at).reverse().find((k) => k.tagName === 'DETAILS' && k.open);
-  const below = kids.slice(at + 1).find((k) => k.tagName === 'DETAILS' && k.open);
-  return above && below ? { above, below } : null;
-}
+const allPanels = [];
 
 function setBasis(panel, px) {
   panel.style.flexBasis = px + 'px';
@@ -123,23 +113,8 @@ function setBasis(panel, px) {
 
 function savePanels() {
   const heights = {};
-  for (const p of panels) if (p.style.flexBasis) heights[p.id] = parseInt(p.style.flexBasis, 10);
+  for (const p of allPanels) if (p.style.flexBasis) heights[p.id] = parseInt(p.style.flexBasis, 10);
   save({ panels: heights });
-}
-
-function resetPanels() {
-  for (const p of panels) p.style.flexBasis = '';
-  save({ panels: {} });
-}
-
-// Lås alla öppna paneler vid sin nuvarande höjd, så att bara de två vid avdelaren rör sig
-function freeze(gutter) {
-  const pair = neighbours(gutter);
-  if (!pair) return null;
-  for (const p of openPanels()) setBasis(p, p.getBoundingClientRect().height);
-  const a = pair.above.getBoundingClientRect().height;
-  const b = pair.below.getBoundingClientRect().height;
-  return { ...pair, a, b, total: a + b };
 }
 
 function split(ctx, dy) {
@@ -149,32 +124,67 @@ function split(ctx, dy) {
   savePanels();
 }
 
-// En avdelare går bara att dra när det finns en öppen panel på båda sidor om den
-function refreshRowGutters() {
-  for (const g of rowGutters) g.setAttribute('aria-disabled', String(!neighbours(g)));
+// En behållare med <details>-paneler och .gutter.row-avdelare emellan
+function setupRows(container) {
+  if (!container) return;
+  const panels = [...container.querySelectorAll(':scope > details')];
+  const gutters = [...container.querySelectorAll(':scope > .gutter')];
+  allPanels.push(...panels);
+
+  // Närmaste öppna panel ovanför respektive nedanför en avdelare
+  function neighbours(gutter) {
+    const kids = [...container.children];
+    const at = kids.indexOf(gutter);
+    const above = kids.slice(0, at).reverse().find((k) => k.tagName === 'DETAILS' && k.open);
+    const below = kids.slice(at + 1).find((k) => k.tagName === 'DETAILS' && k.open);
+    return above && below ? { above, below } : null;
+  }
+
+  // Lås alla öppna paneler vid sin nuvarande höjd, så att bara de två vid avdelaren rör sig
+  function freeze(gutter) {
+    const pair = neighbours(gutter);
+    if (!pair) return null;
+    for (const p of panels) if (p.open) setBasis(p, p.getBoundingClientRect().height);
+    const a = pair.above.getBoundingClientRect().height;
+    const b = pair.below.getBoundingClientRect().height;
+    return { ...pair, a, b, total: a + b };
+  }
+
+  function reset() {
+    for (const p of panels) p.style.flexBasis = '';
+    savePanels();
+  }
+
+  // En avdelare går bara att dra när det finns en öppen panel på båda sidor om den
+  function refresh() {
+    for (const g of gutters) g.setAttribute('aria-disabled', String(!neighbours(g)));
+  }
+
+  for (const gutter of gutters) {
+    handle(gutter, {
+      horizontal: false,
+      start: () => freeze(gutter),
+      move: split,
+      reset,
+      nudge: (dy) => {
+        const ctx = freeze(gutter);
+        if (ctx) split(ctx, dy);
+      },
+    });
+  }
+  for (const p of panels) p.addEventListener('toggle', refresh);
+  refresh();
 }
 
-for (const gutter of rowGutters) {
-  handle(gutter, {
-    horizontal: false,
-    start: () => freeze(gutter),
-    move: split,
-    reset: resetPanels,
-    nudge: (dy) => {
-      const ctx = freeze(gutter);
-      if (ctx) split(ctx, dy);
-    },
-  });
-}
-for (const p of panels) p.addEventListener('toggle', refreshRowGutters);
+setupRows($('#side'));
+setupRows($('#scratch'));
 
 // ----- återställ det som sparats -----
 
 export function setupLayout() {
   if (saved.page) main.style.setProperty('--w-page', saved.page + 'px');
   if (saved.side) main.style.setProperty('--w-side', saved.side + 'px');
-  for (const p of panels) if (saved.panels?.[p.id]) setBasis(p, saved.panels[p.id]);
-  refreshRowGutters();
+  for (const p of allPanels) if (saved.panels?.[p.id]) setBasis(p, saved.panels[p.id]);
 
   // Blir fönstret smalare får kolumnerna inte knuffa ut koden
   // (under 900 px staplas panelerna i stället, och då finns inga kolumner att hålla inom gränserna)
