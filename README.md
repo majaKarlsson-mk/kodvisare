@@ -2,6 +2,11 @@
 
 Se hur din JavaScript körs, steg för steg, utan breakpoints.
 
+![Kodvisare stegar igenom ett exempel där koden kraschar på rad 15. Värdena visas bredvid raderna, och felrutan pekar bakåt till rad 9 där det felaktiga värdet uppstod.](docs/demo.gif)
+
+*Exemplet `bugg-undefined`: koden kraschar på rad 15, men felrutan visar att
+misstaget gjordes på rad 9 (`data.type` i stället för `data.types`).*
+
 Kodvisare kör ett av dina projekt, spelar in allt som händer och låter dig
 bläddra fram och tillbaka i körningen efteråt. I stället för att pausa koden
 och gissa var du ska sätta en breakpoint kan du dra i en tidslinje och se
