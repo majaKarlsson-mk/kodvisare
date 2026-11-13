@@ -25,7 +25,7 @@ generator) och Vitest. Gränssnittet är skrivet utan ramverk.
 Du behöver [Node.js](https://nodejs.org/) (testat med version 24).
 
 ```bash
-git clone https://github.com/majakarlsson68gmailcom/kodvisare.git
+git clone https://github.com/majaKarlsson-mk/kodvisare.git
 cd kodvisare
 npm install
 npm start
