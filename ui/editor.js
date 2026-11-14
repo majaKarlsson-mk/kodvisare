@@ -62,7 +62,7 @@ function outdentLines(state, unit) {
   const block = touchedLines(v, start, end);
   const old = v.slice(block.from, block.to).split('\n');
   const removed = old.map((l) => (l[0] === '\t' ? 1 : /^ */.exec(l)[0].length > unit.length ? unit.length : /^ */.exec(l)[0].length));
-  if (!removed.some(Boolean)) return moveTo(start, end);
+  if (!removed.some(Boolean)) return null; // inget att flytta ut: Skift+Tab flyttar fokus som vanligt
   const lines = old.map((l, i) => l.slice(removed[i]));
   if (start !== end && !v.slice(start, end).includes('\n')) {
     // Markering på en rad: behåll den, flyttad med texten
@@ -175,6 +175,8 @@ export function editFor(state, { key, shift, mod, code }, { unit = '  ', comment
 export function afterComposition(state, data) {
   const { value: v, start, end } = state;
   if (start !== end || !QUOTES.has(data) || v[start - 1] !== data) return null;
+  // Avslutande tecken: det som redan stod efter markören tas bort, som när man skriver förbi det
+  if (v[start] === data) return put(start, start + 1, '', start);
   if (WORD.test(v[start - 2] ?? '') || insideString(v, start - 1, data)) return null;
   return CLOSE_BEFORE.test(v[start] ?? '') ? put(start, start, data, start) : null;
 }
@@ -195,8 +197,14 @@ function applyEdit(ta, { from, to, text, selStart, selEnd }) {
 // opts: { unit: indragssteg, comment: kommentarstecken eller null för att stänga av Cmd+/ }
 export function enhanceEditor(ta, opts = {}) {
   const state = () => ({ value: ta.value, start: ta.selectionStart, end: ta.selectionEnd });
+  let leaving = false; // Esc trycktes: nästa Tab flyttar fokus i stället för att skriva indrag
   ta.addEventListener('keydown', (e) => {
     if (e.isComposing || e.keyCode === 229 || e.defaultPrevented) return;
+    if (e.key === 'Escape') return void (leaving = true);
+    if (['Shift', 'Control', 'Alt', 'Meta'].includes(e.key)) return;
+    const wasLeaving = leaving;
+    leaving = false;
+    if (e.key === 'Tab' && wasLeaving) return;
     if (e.altKey && e.key.length !== 1) return; // Alt+Backsteg tar bort ett ord som vanligt
     const edit = editFor(state(), { key: e.key, shift: e.shiftKey, mod: e.metaKey || e.ctrlKey, code: e.code }, opts);
     if (!edit) return;

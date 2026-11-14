@@ -679,6 +679,7 @@ input[type='search'] {
   font-family: var(--mono);
   font-size: 12.5px;
   line-height: 20px;
+  tab-size: 2; /* samma som textarean, annars hamnar text efter ett tabbtecken på olika ställen */
 }
 /* Spegeln visar den färgade koden; textarean ovanpå har genomskinlig text och syns bara som markör och markering */
 .sb-mirror .tx {

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { afterComposition, editFor } from '../ui/editor.js';
+import { afterComposition, editFor, enhanceEditor } from '../ui/editor.js';
 
 // '|' är markören, '‹…›' en markering. Returnerar texten efter redigeringen
 // med markören/markeringen utritad, eller null om webbläsaren ska sköta tangenten.
@@ -63,6 +63,12 @@ describe('automatiska par', () => {
     const word = parse('`|x');
     expect(afterComposition(word, '`')).toBe(null);
   });
+  test('avslutande backtick från en död tangent hoppar över den som redan står där', () => {
+    const closing = parse('`abc`|`');
+    expect(apply(afterComposition(closing, '`'), closing)).toBe('`abc`|');
+    const empty = parse('``|`');
+    expect(apply(afterComposition(empty, '`'), empty)).toBe('``|');
+  });
 });
 
 describe('indrag', () => {
@@ -98,6 +104,9 @@ describe('indrag', () => {
     expect(press('  a|', 'Tab', { shift: true })).toBe('a|');
     expect(press('‹  a\n    b›', 'Tab', { shift: true })).toBe('‹a\n  b›');
   });
+  test('skift+tab utan indrag lämnas åt webbläsaren (fokus flyttas bakåt)', () => {
+    expect(press('a|', 'Tab', { shift: true })).toBe(null);
+  });
 });
 
 describe('kommentarer', () => {
@@ -114,6 +123,52 @@ describe('kommentarer', () => {
   test('ingen kommentar när det är avstängt', () => {
     const state = parse('a|');
     expect(editFor(state, { key: '/', shift: false, mod: true, code: '' }, { comment: null })).toBe(null);
+  });
+});
+
+// En låtsas-textarea: tillräckligt för att se vad enhanceEditor gör med tangenterna
+function fakeTextarea(value) {
+  const on = {};
+  const ta = {
+    value,
+    selectionStart: value.length,
+    selectionEnd: value.length,
+    addEventListener: (type, fn) => (on[type] = fn),
+    setSelectionRange(a, b) {
+      ta.selectionStart = a;
+      ta.selectionEnd = b;
+    },
+    setRangeText(text, a, b) {
+      ta.value = ta.value.slice(0, a) + text + ta.value.slice(b);
+    },
+    dispatchEvent() {},
+  };
+  const key = (k, mods = {}) => {
+    const e = { key: k, code: '', shiftKey: false, metaKey: false, ctrlKey: false, altKey: false, isComposing: false, keyCode: 0, defaultPrevented: false, ...mods };
+    e.preventDefault = () => (e.defaultPrevented = true);
+    on.keydown(e);
+    return e.defaultPrevented;
+  };
+  return { ta, key };
+}
+
+describe('enhanceEditor', () => {
+  globalThis.document ??= { execCommand: () => false }; // utan webbläsare: reservvägen med setRangeText
+
+  test('tab skriver indrag', () => {
+    const { ta, key } = fakeTextarea('a');
+    enhanceEditor(ta);
+    expect(key('Tab')).toBe(true);
+    expect(ta.value).toBe('a  ');
+  });
+
+  test('esc och sedan tab lämnar rutan', () => {
+    const { ta, key } = fakeTextarea('a');
+    enhanceEditor(ta);
+    key('Escape');
+    key('Shift'); // en ensam skifttangent räknas inte
+    expect(key('Tab', { shiftKey: true })).toBe(false);
+    expect(key('Tab')).toBe(true); // bara nästa tab
   });
 });
 

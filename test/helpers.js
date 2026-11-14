@@ -21,7 +21,8 @@ export async function run(code, { fileId = 1, mode = 'script', wait = 20, result
   vm.runInContext(runtime, context);
   let error = null;
   try {
-    vm.runInContext(out, context);
+    // En loop som spärren missar ska ge ett fel i testet, inte hänga hela testkörningen
+    vm.runInContext(out, context, { timeout: 5000 });
   } catch (e) {
     error = e;
   }

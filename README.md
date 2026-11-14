@@ -72,7 +72,8 @@ parenteser och citattecken stängs av sig själva, och efter `{` + Enter hamnar
 `}` på en egen rad med rätt indrag. Tab och Skift + Tab flyttar markerade rader
 in och ut, och Cmd + / (Cmd + Skift + 7 på svenskt tangentbord) gör dem till
 kommentarer. Allt går att ångra med Cmd + Z. Rutan i Klistra in kod får samma
-hjälp, utom färgerna.
+hjälp, utom färgerna. Vill du lämna rutan med tangentbordet trycker du Esc och
+sedan Tab.
 
 ## Så använder du det
 

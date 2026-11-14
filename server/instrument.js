@@ -59,6 +59,9 @@ function rootOf(n) {
   return n;
 }
 
+// En loopkropp utan satser som körs: ; eller {} (även { {} })
+const isEmptyBody = (n) => n.type === 'EmptyStatement' || (n.type === 'BlockStatement' && n.body.every(isEmptyBody));
+
 const isAssignLike = (n) => n.type === 'AssignmentExpression' || n.type === 'UpdateExpression';
 const isConsoleCall = (n) => {
   if (!isCall(n) || !isMember(n.callee)) return false;
@@ -341,6 +344,12 @@ export function instrument(code, { fileId, mode = 'module', baseOffset = 0, meta
         const n = path.node;
         if (!n.loc || logged.has(n) || inParams(path)) return;
         logged.add(n);
+        // En tom loop (while (x) {}) har inga satser som räknas, så spärren mot oändliga
+        // loopar skulle aldrig slå till. Varje varv blir i stället ett steg på loopens rad.
+        if (isEmptyBody(n.body) && stmtLoc.has(n)) {
+          const L = t.numericLiteral(fileId * MUL + stmtLoc.get(n));
+          n.body = t.blockStatement([t.expressionStatement(kv('s', currentFrame(path), L))]);
+        }
         const head = n.type === 'ForStatement' ? n.init : n.left;
         if (!head) return;
         const names =

@@ -82,6 +82,14 @@ describe('instrumenteringen', () => {
     expect(r.error.message).toMatch(/oändlig loop/);
   });
 
+  // Skrivblocket stänger { av sig själv, så while (x) {} kan köras medan man tänker
+  test('stoppar en oändlig loop med tom kropp', async () => {
+    for (const code of [`let i = 0;\nwhile (i < 10) {\n  \n}`, `for (;;);`, `do {} while (true);`, `for (let i = 0; ; ) {}`]) {
+      const r = await run(code);
+      expect(r.error?.message, code).toMatch(/oändlig loop/);
+    }
+  });
+
   test('klarar cirkulära objekt', async () => {
     const store = storeOf(await run(`const a = { namn: 'a' };\na.jag = a;\na.namn;`));
     const last = values(store, 'a').at(-1);
