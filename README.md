@@ -67,6 +67,13 @@ raderna, och koden i mitten och panelerna till höger fungerar som vanligt, så
 du kan stega igenom körningen. Koden sparas i mappen `.skrivblock` och finns
 kvar nästa gång.
 
+Editorn hjälper till ungefär som VS Code: koden färgas medan du skriver,
+parenteser och citattecken stängs av sig själva, och efter `{` + Enter hamnar
+`}` på en egen rad med rätt indrag. Tab och Skift + Tab flyttar markerade rader
+in och ut, och Cmd + / (Cmd + Skift + 7 på svenskt tangentbord) gör dem till
+kommentarer. Allt går att ångra med Cmd + Z. Rutan i Klistra in kod får samma
+hjälp, utom färgerna.
+
 ## Så använder du det
 
 - **Din sida** till vänster är ditt riktiga projekt. Klicka och skriv som vanligt.

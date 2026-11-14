@@ -4,6 +4,8 @@
 import { $, el } from '../dom.js';
 import { short } from '../format.js';
 import { inlineHtml, inlineValues } from '../inline.js';
+import { enhanceEditor } from '../editor.js';
+import { highlightLines } from '../highlight.js';
 
 export const SCRATCH_NAME = 'Skrivblock';
 const DEBOUNCE = 500; // ms efter senaste tangenttryckningen
@@ -29,15 +31,16 @@ export function createScratchView(app) {
   let lineEls = [];
   let drawn = null;
 
-  // ----- editorn: en textarea ovanpå en spegel med radnummer och värden -----
+  // ----- editorn: en genomskinlig textarea ovanpå en spegel med färgad kod, radnummer och värden -----
 
   function drawMirror() {
     if (ta.value === drawn) return;
     drawn = ta.value;
-    const lines = ta.value.split('\n');
-    lineEls = lines.map((line, i) =>
-      el('div', { class: 'ln', 'data-line': i + 1 }, el('span', { class: 'no' }, String(i + 1)), el('span', { class: 'tx' }, line), el('span', { class: 'iv' })),
-    );
+    lineEls = highlightLines(ta.value).map((html, i) => {
+      const tx = el('span', { class: 'tx' });
+      tx.innerHTML = html;
+      return el('div', { class: 'ln', 'data-line': i + 1 }, el('span', { class: 'no' }, String(i + 1)), tx, el('span', { class: 'iv' }));
+    });
     mirror.replaceChildren(...lineEls);
     // Textarean ska täcka hela spegeln, så att det är rutan runt om som rullar
     ta.style.height = mirror.offsetHeight + 'px';
@@ -47,6 +50,18 @@ export function createScratchView(app) {
   function scheduleRun() {
     clearTimeout(timer);
     if (auto.checked) timer = setTimeout(() => runAndShow(false), DEBOUNCE);
+  }
+
+  // Raden består av flera färgade spann: hitta textnoden och platsen i den för en kolumn
+  function textPoint(tx, col) {
+    const walk = document.createTreeWalker(tx, NodeFilter.SHOW_TEXT);
+    let last = null;
+    for (let node = walk.nextNode(); node; node = walk.nextNode()) {
+      if (col <= node.length) return { node, offset: col };
+      col -= node.length;
+      last = node;
+    }
+    return last && { node: last, offset: last.length };
   }
 
   // Textarean rullar inte själv (den är lika stor som all text), så rutan runt om
@@ -59,9 +74,10 @@ export function createScratchView(app) {
     else if (top + 20 > edit.scrollTop + edit.clientHeight) edit.scrollTop = top + 20 - edit.clientHeight;
     const col = before.length - before.lastIndexOf('\n') - 1;
     const tx = lineEls[line - 1]?.children[1];
-    if (tx && tx.firstChild) {
+    const at = tx && textPoint(tx, col);
+    if (at) {
       const range = document.createRange();
-      range.setStart(tx.firstChild, Math.min(col, tx.firstChild.length));
+      range.setStart(at.node, at.offset);
       range.collapse(true);
       const x = range.getBoundingClientRect().left - edit.getBoundingClientRect().left + edit.scrollLeft;
       if (x < edit.scrollLeft + 56) edit.scrollLeft = Math.max(0, x - 56);
@@ -82,21 +98,10 @@ export function createScratchView(app) {
     if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
       e.preventDefault();
       runAndShow(true);
-    } else if (e.key === 'Tab' && !e.shiftKey) {
-      e.preventDefault();
-      ta.setRangeText('  ', ta.selectionStart, ta.selectionEnd, 'end');
-      ta.dispatchEvent(new Event('input'));
-    } else if (e.key === 'Enter' && !e.shiftKey) {
-      // Ny rad börjar med samma indrag som raden ovanför
-      const before = ta.value.slice(0, ta.selectionStart);
-      const indent = /[ \t]*$/.exec(before.slice(before.lastIndexOf('\n') + 1))[0];
-      if (indent) {
-        e.preventDefault();
-        ta.setRangeText('\n' + indent, ta.selectionStart, ta.selectionEnd, 'end');
-        ta.dispatchEvent(new Event('input'));
-      }
     }
   });
+  // Par, indrag, Tab och Cmd+/ (se editor.js)
+  enhanceEditor(ta);
 
   $('#sb-run').addEventListener('click', () => runAndShow(true));
   auto.addEventListener('change', () => auto.checked && scheduleRun());

@@ -680,8 +680,9 @@ input[type='search'] {
   font-size: 12.5px;
   line-height: 20px;
 }
+/* Spegeln visar den färgade koden; textarean ovanpå har genomskinlig text och syns bara som markör och markering */
 .sb-mirror .tx {
-  color: transparent;
+  color: var(--text);
 }
 .sb-mirror.pending .iv {
   opacity: 0.35;
@@ -694,18 +695,23 @@ input[type='search'] {
   min-height: 100%;
   margin: 0;
   background: transparent;
-  color: var(--text);
+  color: transparent;
+  caret-color: var(--text);
   border: 0;
   border-radius: 0;
   resize: none;
   overflow: hidden;
   font: 12.5px/20px var(--mono);
-  padding: 6px 16px 6px 56px;
+  padding: 6px 16px 6px 44px; /* samma som radnumrens bredd (.ln .no), så att texten ligger exakt över spegeln */
   white-space: pre;
   tab-size: 2;
 }
 #sb-code:focus-visible {
   outline: none;
+}
+#sb-code::selection {
+  color: transparent;
+  background: color-mix(in srgb, var(--accent) 28%, transparent);
 }
 #sb-code::placeholder {
   color: var(--muted);

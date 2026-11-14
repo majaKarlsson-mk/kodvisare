@@ -10,6 +10,7 @@ import { createErrorView } from './views/error.js';
 import { createTimelineView } from './views/timeline.js';
 import { createScratchView, SCRATCH_NAME } from './views/scratch.js';
 import { setupLayout } from './layout.js';
+import { enhanceEditor } from './editor.js';
 
 const store = new Store();
 const frame = $('#frame');
@@ -271,6 +272,9 @@ const panes = { projects: $('#pane-projects'), paste: $('#pane-paste'), scratch:
 const pasteCode = $('#paste-code');
 const pasteHtml = $('#paste-html');
 let snippetLoaded = false;
+// Samma hjälp som i skrivblocket: par, indrag och Tab (HTML-rutan utan Cmd+/ för //-kommentarer)
+enhanceEditor(pasteCode);
+enhanceEditor(pasteHtml, { comment: null });
 
 // Flikarna i projektväljaren: 'projects', 'paste' eller 'scratch'
 async function showTab(which) {
